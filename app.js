@@ -282,10 +282,22 @@
 
     const handleCopy = async () => {
       try {
-        await navigator.clipboard.writeText(PROFILE.email);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(PROFILE.email);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = PROFILE.email;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          ta.style.pointerEvents = "none";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
         toast("Email copied: " + PROFILE.email + " 🌸");
       } catch {
-        toast("Could not copy. Email: " + PROFILE.email);
+        toast("Email: " + PROFILE.email);
       }
     };
 
@@ -525,30 +537,24 @@
 
   // Button ripple
   function initButtonRipples() {
-    document.addEventListener('click', (e) => {
+    document.addEventListener('pointerdown', (e) => {
       const b = e.target.closest('.btn');
       if (!b) return;
       const rect = b.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2.2;
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      let r = b.querySelector('.ripple');
-      if (!r) {
-        r = document.createElement('span');
-        r.className = 'ripple';
-        b.appendChild(r);
-      }
-      r.classList.remove('show');
-      r.style.left = `${x}px`;
-      r.style.top = `${y}px`;
-      r.style.width = r.style.height = '8px';
+      const ripple = document.createElement('span');
+      ripple.className = 'btn__ripple';
+      ripple.style.width = `${size}px`;
+      ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
 
-      requestAnimationFrame(() => {
-        const size = Math.max(rect.width, rect.height) * 2;
-        r.style.width = r.style.height = `${size}px`;
-        r.classList.add('show');
-        setTimeout(() => r.classList.remove('show'), 450);
-      });
+      b.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+      setTimeout(() => { if (ripple.parentNode) ripple.remove(); }, 600);
     });
   }
 
